@@ -1,0 +1,11 @@
+# User's vault config (contains personal vault paths)
+skill/references/vault-config.md
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+*.swp
+*.swo
+*~

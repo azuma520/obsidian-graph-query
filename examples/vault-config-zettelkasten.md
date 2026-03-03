@@ -8,9 +8,9 @@
 
 | 項目 | 值 |
 |------|-----|
-| CLI 路徑 | `/c/Users/user/AppData/Local/Programs/Obsidian/Obsidian.com` |
+| CLI 路徑 | `/c/Users/yourname/AppData/Local/Programs/Obsidian/Obsidian.com` |
 | Vault 名稱 | `My Zettelkasten` |
-| Vault 路徑 | `C:\Users\user\Documents\My Zettelkasten` |
+| Vault 路徑 | `C:\Users\yourname\Documents\My Zettelkasten` |
 | 平台 | Windows 11（bash shell） |
 
 ---
