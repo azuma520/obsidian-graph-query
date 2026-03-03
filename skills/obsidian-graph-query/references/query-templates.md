@@ -49,6 +49,7 @@
     }
   }
 
+  const MAX_DETAIL = 50;
   const byHop = {};
   for (const [node, hop] of visited.entries()) {
     if (node === NOTE) continue;
@@ -57,11 +58,28 @@
     byHop[h].push(node);
   }
 
+  const total = visited.size - 1;
+  let truncated = false;
+
+  if (total > MAX_DETAIL) {
+    truncated = true;
+    let cumulative = 0;
+    for (let h = 1; h <= MAX_HOPS; h++) {
+      const key = String(h);
+      if (!byHop[key]) continue;
+      cumulative += byHop[key].length;
+      if (cumulative > MAX_DETAIL) {
+        byHop[key] = { count: byHop[key].length, notes: '(truncated)' };
+      }
+    }
+  }
+
   return JSON.stringify({
     source: NOTE,
     maxHops: MAX_HOPS,
     neighbors: byHop,
-    total: visited.size - 1
+    total: total,
+    truncated: truncated
   });
 })()
 ```
@@ -105,6 +123,15 @@
     }
   }
 
+  const fromExists = adj[FROM] !== undefined;
+  const toExists = adj[TO] !== undefined;
+  if (!fromExists || !toExists) {
+    return JSON.stringify({
+      from: FROM, to: TO, found: false, path: [], hops: -1,
+      error: !fromExists ? 'source_not_in_graph' : 'target_not_in_graph'
+    });
+  }
+
   const parent = new Map();
   parent.set(FROM, null);
   const queue = [FROM];
@@ -123,7 +150,7 @@
   }
 
   if (!found) {
-    return JSON.stringify({ from: FROM, to: TO, found: false, path: [], hops: -1 });
+    return JSON.stringify({ from: FROM, to: TO, found: false, path: [], hops: -1, error: 'no_path' });
   }
 
   const path = [];
@@ -310,9 +337,19 @@
     degree: (adjArr[n] || []).length
   })).sort((a, b) => b.degree - a.degree);
 
+  // Summary: bridges by folder
+  const bridgesByFolder = {};
+  for (const [a, b] of bridges) {
+    const fa = a.includes('/') ? a.substring(0, a.indexOf('/')) : '(root)';
+    const fb = b.includes('/') ? b.substring(0, b.indexOf('/')) : '(root)';
+    bridgesByFolder[fa] = (bridgesByFolder[fa] || 0) + 1;
+    if (fa !== fb) bridgesByFolder[fb] = (bridgesByFolder[fb] || 0) + 1;
+  }
+
   return JSON.stringify({
     bridgeEdges: bridges.slice(0, 50),
     totalBridges: bridges.length,
+    bridgesByFolder: bridgesByFolder,
     articulationPoints: apSorted.slice(0, 30),
     totalArticulationPoints: artPoints.size,
     totalNodes: nodes.length
