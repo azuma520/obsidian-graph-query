@@ -1,90 +1,84 @@
 # obsidian-graph-query
 
-A [Claude Code](https://docs.anthropic.com/en/docs/claude-code) skill that runs graph queries on your Obsidian vault's link structure. Find hub notes, shortest paths, clusters, bridges, orphans, and relationship summaries — all through natural language.
+Turn your Obsidian vault into a queryable knowledge graph — find hub notes, shortest paths, clusters, bridges, orphans, and relationship summaries, all through natural language in Claude Code.
 
-## Prerequisites
+---
 
-- [Obsidian](https://obsidian.md/) (open and running)
-- [Obsidian CLI](https://help.obsidian.md/cli) (for `eval` command)
-- [Claude Code](https://docs.anthropic.com/en/docs/claude-code)
+## What You Need
 
-## Installation
+Before installing, make sure you have these three things:
+
+1. **[Obsidian](https://obsidian.md/)** — with the [CLI](https://help.obsidian.md/cli) enabled (Settings > General > Command-line interface)
+2. **[Claude Code](https://docs.anthropic.com/en/docs/claude-code)** — Anthropic's CLI for Claude
+
+That's it.
+
+---
+
+## Installation (3 steps)
+
+### Step 1: Clone this repo
+
+Open your terminal and run:
 
 ```bash
 git clone https://github.com/YOUR_USERNAME/obsidian-graph-query.git
-cd obsidian-graph-query
 ```
 
-Then open Claude Code in this directory and say **"help me set up"** (or「幫我安裝」). Claude will:
-
-1. Detect your skills directory
-2. Ask for your vault name, CLI path, and folder structure
-3. Auto-detect which folders to exclude and which frontmatter fields you use
-4. Generate your `vault-config.md`
-5. Copy the skill to the right place
-6. Run a test query to verify everything works
-
-After setup, restart Claude Code. The skill will be available globally.
-
-### Manual install (alternative)
+### Step 2: Open Claude Code in the cloned folder
 
 ```bash
-bash install.sh
+cd obsidian-graph-query
+claude
 ```
 
-Then edit `vault-config.md` with your vault settings manually.
+### Step 3: Tell Claude to set it up
 
-## Configuration
+Type any of these:
 
-Edit `vault-config.md` (created by the installer) to set:
-
-### CLI Path & Vault Name
-
-```markdown
-| CLI 路徑 | `/c/Users/you/AppData/Local/Programs/Obsidian/Obsidian.com` |
-| Vault 名稱 | `My Vault` |
+```
+help me set up
+```
+```
+幫我安裝
+```
+```
+setup
 ```
 
-### Excluded Folders
+Claude will walk you through everything:
 
-Folders to skip in all graph queries (JSON array):
+- **Finds** your Claude Code skills folder automatically
+- **Asks** your vault name and verifies the CLI connection
+- **Scans** your vault folders and lets you pick which ones to exclude
+- **Detects** your frontmatter relationship fields (or lets you set them manually)
+- **Generates** the config, copies files to the right place, and runs a test query
 
-```json
-[".obsidian/", ".trash/", "attachments/", "templates/"]
-```
+When it's done, **restart Claude Code**. The skill is now available in every project.
 
-### Relationship Fields
+> **Prefer manual install?** Run `bash install.sh` and edit `vault-config.md` yourself. See `examples/` for reference configs.
 
-Frontmatter fields that represent note-to-note relationships (JSON array):
+---
 
-```json
-["Up", "Source", "References", "Related"]
-```
+## What Can It Do?
 
-See `examples/` for complete configuration examples:
-- `vault-config-zettelkasten.md` — Zettelkasten / card-based vault
-- `vault-config-biomedical.md` — Biomedical knowledge base
+Just ask Claude in natural language. Here are some examples:
 
-## Queries
+| You say | What happens |
+|---------|-------------|
+| "What are the most connected notes in my vault?" | Finds your top hub notes by link count |
+| "How are [[Note A]] and [[Note B]] connected?" | Finds the shortest path between two notes |
+| "What cluster does [[My Note]] belong to?" | Shows all reachable notes from a starting point |
+| "Which notes are structural bridges in my vault?" | Finds critical notes whose removal would disconnect the graph |
+| "Find orphan notes in my Projects folder" | Lists isolated notes with no links in or out |
+| "What relationships does [[My Note]] have?" | Extracts frontmatter relationship fields + link stats |
+| "Analyze the relationships around [[Topic X]]" | Multi-step analysis combining graph structure + frontmatter + LLM reasoning |
 
-| Query | Description | Example prompt |
-|-------|-------------|----------------|
-| **neighbors** | Find notes within N hops | "Show me notes within 2 hops of [[BFS]]" |
-| **path** | Shortest path between two notes | "How are [[Note A]] and [[Note B]] connected?" |
-| **cluster** | All reachable notes (connected component) | "What cluster does [[My Note]] belong to?" |
-| **bridges** | Critical edges and articulation points | "Which notes are structural bridges in my vault?" |
-| **hubs** | Top N most-connected notes | "What are the top 20 hub notes?" |
-| **orphans-rich** | Isolated notes with frontmatter | "Find orphan notes in my Projects folder" |
-| **frontmatter-relations** | Relationship field extraction | "What relationships does [[My Note]] have?" |
-| **relationship-summary** | Multi-step relationship analysis | "Analyze the relationships around [[Topic X]]" |
+### Example: hub notes
 
-## Example Conversations
-
-### Find hub notes
-
-> **You:** What are the most connected notes in my vault?
+> **You:** What are the most connected notes?
 >
-> **Claude:** *(runs hubs query, returns top 20 sorted by total degree)*
+> **Claude:**
 >
 > | Note | In | Out | Total |
 > |------|----|-----|-------|
@@ -92,52 +86,42 @@ See `examples/` for complete configuration examples:
 > | Core Concept | 40 | 20 | 60 |
 > | ... | | | |
 
-### Find shortest path
+### Example: shortest path
 
 > **You:** How are "Machine Learning" and "Neuroscience" connected?
 >
-> **Claude:** *(searches for notes, runs path query)*
->
-> Machine Learning → Neural Networks → Neuroscience (2 hops)
+> **Claude:** Machine Learning → Neural Networks → Neuroscience (2 hops)
 
-### Analyze relationships
+---
 
-> **You:** What are the relationships around my note on "Spinal Fusion"?
->
-> **Claude:** *(runs frontmatter-relations + neighbors, reads relationship fields)*
->
-> | Relation | Type | Source |
-> |----------|------|--------|
-> | → Medtronic | company | ✅ frontmatter |
-> | → Titanium alloy | materials | ✅ frontmatter |
-> | ← TLIF Procedure | references | ✅ frontmatter |
+## Changing Settings Later
+
+Your config lives at:
+
+```
+<Claude Code skills folder>/obsidian-graph-query/references/vault-config.md
+```
+
+Open it in any text editor to change:
+
+- **Excluded folders** — folders to skip in queries (e.g. attachments, templates)
+- **Relationship fields** — frontmatter fields that link notes together (e.g. `Up`, `Source`, `Related`)
+
+Or just tell Claude: **"update my graph query config"** and it will guide you.
+
+---
 
 ## How It Works
 
 1. Claude reads your `vault-config.md` for settings
-2. Selects the appropriate JS query template
-3. Substitutes your excluded folders and relationship fields into the template
-4. Writes the JS to a temp file and executes via Obsidian CLI's `eval` command
-5. Parses the JSON output and presents results in Markdown
+2. Picks the right JS query template (there are 7 built-in)
+3. Fills in your excluded folders and relationship fields
+4. Runs the JS via Obsidian CLI's `eval` command
+5. Parses the JSON result and presents it in Markdown
 
-All queries use `app.metadataCache.resolvedLinks` — the complete link adjacency table maintained by Obsidian — so results are always up to date.
+Queries use `app.metadataCache.resolvedLinks` — Obsidian's internal link index — so results are always live and up to date.
 
-## Project Structure
-
-```
-obsidian-graph-query/
-├── README.md
-├── install.sh
-├── skill/
-│   ├── SKILL.md                      ← Main skill file
-│   └── references/
-│       ├── vault-config.md.template  ← Configuration template
-│       ├── query-templates.md        ← 7 JS query templates
-│       └── relationship-types.md     ← Relationship schema
-└── examples/
-    ├── vault-config-zettelkasten.md  ← Zettelkasten vault example
-    └── vault-config-biomedical.md    ← Biomedical KB example
-```
+---
 
 ## License
 
