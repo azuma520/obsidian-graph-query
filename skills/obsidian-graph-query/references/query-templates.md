@@ -8,15 +8,18 @@
 
 ---
 
-## 1. neighbors — N 層鄰居（BFS）
+## 1. neighbors — N 層鄰居（BFS）+ hop 1 邊標註
 
 **參數**：`{{NOTE_PATH}}`（完整路徑）、`{{MAX_HOPS}}`（預設 2）
+
+hop 1 的直接鄰居額外標註連結方向和來源（frontmatter 欄位 or 內文行號）。
 
 ```javascript
 (() => {
   const NOTE = '{{NOTE_PATH}}';
   const MAX_HOPS = {{MAX_HOPS}};
   const EXCLUDED = {{EXCLUDED_FOLDERS}};
+  const REL_FIELDS = {{RELATIONSHIP_FIELDS}};
   const isExcluded = p => EXCLUDED.some(e => p.startsWith(e));
 
   const rl = app.metadataCache.resolvedLinks;
@@ -58,6 +61,45 @@
     byHop[h].push(node);
   }
 
+  // Annotate hop 1: direction + reason
+  function findReason(src, tgt) {
+    const file = app.vault.getAbstractFileByPath(src);
+    if (!file) return { from: src, type: 'unknown' };
+    const cache = app.metadataCache.getFileCache(file);
+    if (!cache) return { from: src, type: 'unknown' };
+    const tgtName = tgt.replace(/.*\//, '').replace('.md', '');
+    const fm = cache.frontmatter || {};
+    for (const field of REL_FIELDS) {
+      if (fm[field] == null) continue;
+      const vals = Array.isArray(fm[field]) ? fm[field] : [fm[field]];
+      if (vals.some(v => String(v).includes(tgtName))) {
+        return { from: src, type: 'frontmatter', field: field };
+      }
+    }
+    const links = (cache.links || []).concat(cache.embeds || []);
+    for (const lk of links) {
+      const lkBase = lk.link.split('#')[0];
+      if (lkBase === tgtName || tgt.endsWith('/' + lkBase + '.md')) {
+        return { from: src, type: 'body', line: lk.position.start.line + 1 };
+      }
+    }
+    return { from: src, type: 'unknown' };
+  }
+
+  const hop1Edges = [];
+  const hop1 = byHop['1'] || [];
+  if (Array.isArray(hop1)) {
+    for (const nb of hop1.slice(0, MAX_DETAIL)) {
+      const aToB = rl[NOTE] && rl[NOTE][nb] !== undefined;
+      const bToA = rl[nb] && rl[nb][NOTE] !== undefined;
+      const dir = aToB && bToA ? 'both' : aToB ? 'outgoing' : 'incoming';
+      const reasons = [];
+      if (aToB) reasons.push(findReason(NOTE, nb));
+      if (bToA) reasons.push(findReason(nb, NOTE));
+      hop1Edges.push({ note: nb, direction: dir, reasons: reasons });
+    }
+  }
+
   const total = visited.size - 1;
   let truncated = false;
 
@@ -78,6 +120,7 @@
     source: NOTE,
     maxHops: MAX_HOPS,
     neighbors: byHop,
+    hop1Edges: hop1Edges,
     total: total,
     truncated: truncated
   });
@@ -99,15 +142,18 @@
 
 ---
 
-## 2. path — 最短路徑（BFS）
+## 2. path — 最短路徑（BFS）+ 邊標註
 
 **參數**：`{{FROM_PATH}}`、`{{TO_PATH}}`（完整路徑）
+
+每一步標註連結方向和來源（frontmatter 欄位 or 內文行號），Agent 不需要額外查詢就能回答「為什麼這兩篇連在一起」。
 
 ```javascript
 (() => {
   const FROM = '{{FROM_PATH}}';
   const TO = '{{TO_PATH}}';
   const EXCLUDED = {{EXCLUDED_FOLDERS}};
+  const REL_FIELDS = {{RELATIONSHIP_FIELDS}};
   const isExcluded = p => EXCLUDED.some(e => p.startsWith(e));
 
   const rl = app.metadataCache.resolvedLinks;
@@ -160,12 +206,50 @@
     cur = parent.get(cur);
   }
 
+  // Annotate each edge: direction + reason (frontmatter field or body line)
+  function findReason(src, tgt) {
+    const file = app.vault.getAbstractFileByPath(src);
+    if (!file) return { from: src, type: 'unknown' };
+    const cache = app.metadataCache.getFileCache(file);
+    if (!cache) return { from: src, type: 'unknown' };
+    const tgtName = tgt.replace(/.*\//, '').replace('.md', '');
+    const fm = cache.frontmatter || {};
+    for (const field of REL_FIELDS) {
+      if (fm[field] == null) continue;
+      const vals = Array.isArray(fm[field]) ? fm[field] : [fm[field]];
+      if (vals.some(v => String(v).includes(tgtName))) {
+        return { from: src, type: 'frontmatter', field: field };
+      }
+    }
+    const links = (cache.links || []).concat(cache.embeds || []);
+    for (const lk of links) {
+      const lkBase = lk.link.split('#')[0];
+      if (lkBase === tgtName || tgt.endsWith('/' + lkBase + '.md')) {
+        return { from: src, type: 'body', line: lk.position.start.line + 1 };
+      }
+    }
+    return { from: src, type: 'unknown' };
+  }
+
+  const edges = [];
+  for (let i = 0; i < path.length - 1; i++) {
+    const a = path[i], b = path[i + 1];
+    const aToB = rl[a] && rl[a][b] !== undefined;
+    const bToA = rl[b] && rl[b][a] !== undefined;
+    const dir = aToB && bToA ? 'both' : aToB ? 'forward' : 'backward';
+    const reasons = [];
+    if (aToB) reasons.push(findReason(a, b));
+    if (bToA) reasons.push(findReason(b, a));
+    edges.push({ from: a, to: b, direction: dir, reasons: reasons });
+  }
+
   return JSON.stringify({
     from: FROM,
     to: TO,
     found: true,
     path: path,
-    hops: path.length - 1
+    hops: path.length - 1,
+    edges: edges
   });
 })()
 ```
