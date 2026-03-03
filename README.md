@@ -1,5 +1,7 @@
 # obsidian-graph-query
 
+[繁體中文](README.zh-TW.md)
+
 Turn your Obsidian vault into a queryable knowledge graph — find hub notes, shortest paths, clusters, bridges, orphans, and relationship summaries, all through natural language in Claude Code.
 
 ---
