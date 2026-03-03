@@ -1,5 +1,8 @@
 # User's vault config (contains personal vault paths)
-skill/references/vault-config.md
+skills/obsidian-graph-query/references/vault-config.md
+
+# npx skills add local install
+.agents/
 
 # OS files
 .DS_Store
