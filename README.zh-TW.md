@@ -1,5 +1,7 @@
 # obsidian-graph-query
 
+讓你的 AI agent 直接對 Obsidian vault 的知識圖譜下查詢。
+
 你的 vault 有圖譜。但你只能盯著它看。
 
 Obsidian 的 graph view 很美，但它回答不了任何問題 —「哪些筆記是知識樞紐？」「這兩個概念之間隔幾層？」「哪些筆記斷掉會讓整張網散掉？」「我有多少篇心血結晶其實是孤島？」
