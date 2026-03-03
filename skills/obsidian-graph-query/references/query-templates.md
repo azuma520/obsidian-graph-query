@@ -605,3 +605,190 @@ hop 1 的直接鄰居額外標註連結方向和來源（frontmatter 欄位 or �
   });
 })()
 ```
+
+---
+
+## 8. vault-stats — Vault 全域統計（一次性掃描）
+
+**參數**：無（全 vault 分析）
+
+一次掃描全 vault，計算所有聚合指標。供 vault-report 工作流的模組一、二使用，避免多次查詢。
+
+計算內容：
+- 節點數、邊數（有向）、平均每篇連結數
+- 孤島數量與佔比（無任何連入且無任何連出）
+- 連通分量數、最大分量大小與涵蓋率
+- 各資料夾：筆記數、連結數、孤島數
+- 跨資料夾連結數與佔比
+- 月度建立筆記數（按 `file.stat.ctime` 分月）
+- outDegree > 0 但 inDegree = 0 的筆記（寫了很多但沒人引用）
+
+```javascript
+(() => {
+  const EXCLUDED = {{EXCLUDED_FOLDERS}};
+  const isExcluded = p => EXCLUDED.some(e => p.startsWith(e));
+
+  const rl = app.metadataCache.resolvedLinks;
+
+  // --- Directed degree maps + undirected adjacency ---
+  const outDeg = {};
+  const inDeg = {};
+  const adjSet = {};
+  let edgeCount = 0;
+
+  for (const [src, targets] of Object.entries(rl)) {
+    if (isExcluded(src)) continue;
+    if (!adjSet[src]) adjSet[src] = new Set();
+    const tgts = Object.keys(targets).filter(t => !isExcluded(t));
+    outDeg[src] = (outDeg[src] || 0) + tgts.length;
+    edgeCount += tgts.length;
+    for (const tgt of tgts) {
+      inDeg[tgt] = (inDeg[tgt] || 0) + 1;
+      if (!adjSet[tgt]) adjSet[tgt] = new Set();
+      adjSet[src].add(tgt);
+      adjSet[tgt].add(src);
+    }
+  }
+
+  // --- All markdown files (including orphans) ---
+  const allFiles = app.vault.getMarkdownFiles().filter(f => !isExcluded(f.path));
+  const totalNotes = allFiles.length;
+
+  // --- Orphans: no outgoing AND no incoming ---
+  // Note: resolvedLinks creates entries for all files (even with 0 links),
+  // so we must check actual degree values, not just key existence.
+  const connectedNodes = new Set();
+  for (const [n, d] of Object.entries(outDeg)) { if (d > 0) connectedNodes.add(n); }
+  for (const [n, d] of Object.entries(inDeg)) { if (d > 0) connectedNodes.add(n); }
+  const orphanPaths = new Set();
+  for (const f of allFiles) {
+    if (!connectedNodes.has(f.path)) orphanPaths.add(f.path);
+  }
+  const orphanCount = orphanPaths.size;
+
+  // --- Connected components (iterative BFS over all files) ---
+  const visited = new Set();
+  const componentSizes = [];
+
+  for (const f of allFiles) {
+    if (visited.has(f.path)) continue;
+    let size = 0;
+    const queue = [f.path];
+    visited.add(f.path);
+    let qi = 0;
+    while (qi < queue.length) {
+      const node = queue[qi++];
+      size++;
+      for (const nb of (adjSet[node] || [])) {
+        if (!visited.has(nb)) {
+          visited.add(nb);
+          queue.push(nb);
+        }
+      }
+    }
+    componentSizes.push(size);
+  }
+
+  componentSizes.sort((a, b) => b - a);
+  const componentCount = componentSizes.length;
+  const largestComponent = componentSizes[0] || 0;
+  const largestComponentRatio = totalNotes > 0
+    ? Math.round(largestComponent / totalNotes * 10000) / 10000
+    : 0;
+
+  // --- Per-folder stats ---
+  const getFolder = p => p.includes('/') ? p.substring(0, p.lastIndexOf('/')) : '(root)';
+  const folderStats = {};
+
+  for (const f of allFiles) {
+    const folder = getFolder(f.path);
+    if (!folderStats[folder]) folderStats[folder] = { notes: 0, links: 0, orphans: 0 };
+    folderStats[folder].notes++;
+    folderStats[folder].links += (outDeg[f.path] || 0);
+    if (orphanPaths.has(f.path)) folderStats[folder].orphans++;
+  }
+
+  // --- Cross-folder links ---
+  let crossFolderLinks = 0;
+  for (const [src, targets] of Object.entries(rl)) {
+    if (isExcluded(src)) continue;
+    const srcFolder = getFolder(src);
+    for (const tgt of Object.keys(targets)) {
+      if (isExcluded(tgt)) continue;
+      if (getFolder(tgt) !== srcFolder) crossFolderLinks++;
+    }
+  }
+
+  // --- Monthly creation (by file.stat.ctime) ---
+  const monthlyCreation = {};
+  for (const f of allFiles) {
+    const d = new Date(f.stat.ctime);
+    const key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+    monthlyCreation[key] = (monthlyCreation[key] || 0) + 1;
+  }
+  // Sort by month
+  const monthlySorted = {};
+  for (const k of Object.keys(monthlyCreation).sort()) {
+    monthlySorted[k] = monthlyCreation[k];
+  }
+
+  // --- outDegree > 0 but inDegree = 0 (write but never cited) ---
+  const outOnlyNotes = [];
+  for (const f of allFiles) {
+    if ((outDeg[f.path] || 0) > 0 && (inDeg[f.path] || 0) === 0) {
+      outOnlyNotes.push(f.path);
+    }
+  }
+
+  return JSON.stringify({
+    totalNotes: totalNotes,
+    totalLinks: edgeCount,
+    avgLinksPerNote: Math.round(edgeCount / Math.max(totalNotes, 1) * 100) / 100,
+    orphanCount: orphanCount,
+    orphanRatio: Math.round(orphanCount / Math.max(totalNotes, 1) * 10000) / 10000,
+    componentCount: componentCount,
+    largestComponent: largestComponent,
+    largestComponentRatio: largestComponentRatio,
+    componentSizes: componentSizes.slice(0, 20),
+    folderStats: folderStats,
+    crossFolderLinks: crossFolderLinks,
+    crossFolderRatio: Math.round(crossFolderLinks / Math.max(edgeCount, 1) * 10000) / 10000,
+    monthlyCreation: monthlySorted,
+    outOnlyCount: outOnlyNotes.length,
+    outOnlyNotes: outOnlyNotes.slice(0, 50)
+  });
+})()
+```
+
+**輸出範例**：
+```json
+{
+  "totalNotes": 2134,
+  "totalLinks": 5678,
+  "avgLinksPerNote": 2.66,
+  "orphanCount": 312,
+  "orphanRatio": 0.1462,
+  "componentCount": 45,
+  "largestComponent": 1780,
+  "largestComponentRatio": 0.8341,
+  "componentSizes": [1780, 12, 8, 5, 3, 1, 1, ...],
+  "folderStats": {
+    "notes/心理學": { "notes": 150, "links": 420, "orphans": 12 },
+    "notes/技術": { "notes": 300, "links": 890, "orphans": 45 }
+  },
+  "crossFolderLinks": 1234,
+  "crossFolderRatio": 0.2174,
+  "monthlyCreation": {
+    "2024-01": 15, "2024-02": 23, "2024-03": 31
+  },
+  "outOnlyCount": 89,
+  "outOnlyNotes": ["notes/某筆記.md", ...]
+}
+```
+
+**輸出說明**：
+- `orphanRatio`：孤島佔比，0.15 表示 15% 的筆記是死的
+- `largestComponentRatio`：最大連通分量涵蓋率，越接近 1 表示知識網路越連貫
+- `componentSizes`：前 20 個分量大小（降序），除了最大的以外都是「知識孤島」
+- `crossFolderRatio`：跨資料夾連結佔總連結的比例，反映跨領域整合程度
+- `outOnlyNotes`：有連出但沒人引用的筆記，可能是「寫了但沒被利用」的知識

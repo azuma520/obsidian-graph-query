@@ -1,8 +1,44 @@
 # User's vault config (contains personal vault paths)
 skills/obsidian-graph-query/references/vault-config.md
 
+# Generated reports (user-specific)
+vault-report-*.md
+
 # npx skills add local install
 .agents/
+
+# AI tool configs
+.agent/
+.claude/
+.cline/
+.codebuddy/
+.codex/
+.commandcode/
+.continue/
+.copilot/
+.crush/
+.cursor/
+.factory/
+.gemini/
+.github/
+.goose/
+.junie/
+.kilocode/
+.kiro/
+.kode/
+.mcpjam/
+.mux/
+.neovate/
+.opencode/
+.openhands/
+.pi/
+.pochi/
+.qoder/
+.qwen/
+.roo/
+.trae/
+.windsurf/
+.zencoder/
 
 # OS files
 .DS_Store

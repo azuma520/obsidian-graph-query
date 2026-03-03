@@ -1,14 +1,17 @@
 #!/bin/bash
 # obsidian-graph-query installer
-# Copies the skill into Claude Code's skills directory
+# Copies skills into Claude Code's skills directory
 
 set -e
 
-SKILL_NAME="obsidian-graph-query"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-SOURCE_DIR="$SCRIPT_DIR/skills/obsidian-graph-query"
 
-echo "=== $SKILL_NAME Installer ==="
+SKILLS=(
+  "obsidian-graph-query"
+  "vault-report"
+)
+
+echo "=== Obsidian Graph Query Installer ==="
 echo ""
 
 # --- Detect Claude Code skills directory ---
@@ -54,50 +57,64 @@ fi
 echo "Skills directory: $SKILLS_DIR"
 echo ""
 
-# --- Check for existing installation ---
+# --- Install each skill ---
 
-TARGET_DIR="$SKILLS_DIR/$SKILL_NAME"
+for SKILL_NAME in "${SKILLS[@]}"; do
+  echo "--- Installing: $SKILL_NAME ---"
 
-if [[ -d "$TARGET_DIR" ]]; then
-  echo "Existing installation found at: $TARGET_DIR"
-  read -rp "Overwrite? (y/N) " confirm
-  if [[ "$confirm" != "y" && "$confirm" != "Y" ]]; then
-    echo "Aborted."
-    exit 0
+  SOURCE_DIR="$SCRIPT_DIR/skills/$SKILL_NAME"
+  TARGET_DIR="$SKILLS_DIR/$SKILL_NAME"
+
+  if [[ ! -d "$SOURCE_DIR" ]]; then
+    echo "  Source not found: $SOURCE_DIR (skipping)"
+    echo ""
+    continue
   fi
-  rm -rf "$TARGET_DIR"
-fi
 
-# --- Copy skill files ---
+  if [[ -d "$TARGET_DIR" ]]; then
+    echo "  Existing installation found."
+    read -rp "  Overwrite $SKILL_NAME? (y/N) " confirm
+    if [[ "$confirm" != "y" && "$confirm" != "Y" ]]; then
+      echo "  Skipped."
+      echo ""
+      continue
+    fi
+    rm -rf "$TARGET_DIR"
+  fi
 
-echo "Copying skill files..."
-cp -r "$SOURCE_DIR" "$TARGET_DIR"
+  cp -r "$SOURCE_DIR" "$TARGET_DIR"
+  echo "  Copied to: $TARGET_DIR"
 
-# --- Create vault-config.md from template if not exists ---
+  # Create vault-config.md from template (obsidian-graph-query only)
+  if [[ "$SKILL_NAME" == "obsidian-graph-query" ]]; then
+    CONFIG_FILE="$TARGET_DIR/references/vault-config.md"
+    TEMPLATE_FILE="$TARGET_DIR/references/vault-config.md.template"
+    if [[ ! -f "$CONFIG_FILE" ]]; then
+      cp "$TEMPLATE_FILE" "$CONFIG_FILE"
+      echo "  Created vault-config.md from template."
+    fi
+  fi
 
-CONFIG_FILE="$TARGET_DIR/references/vault-config.md"
-TEMPLATE_FILE="$TARGET_DIR/references/vault-config.md.template"
+  echo ""
+done
 
-if [[ ! -f "$CONFIG_FILE" ]]; then
-  cp "$TEMPLATE_FILE" "$CONFIG_FILE"
-  echo "Created vault-config.md from template."
-fi
-
-echo ""
 echo "=== Installation complete ==="
 echo ""
-echo "Installed to: $TARGET_DIR"
+echo "Installed skills:"
+for SKILL_NAME in "${SKILLS[@]}"; do
+  if [[ -d "$SKILLS_DIR/$SKILL_NAME" ]]; then
+    echo "  - $SKILL_NAME"
+  fi
+done
 echo ""
 echo "Next steps:"
 echo "  1. Edit vault-config.md with your vault settings:"
-echo "     $CONFIG_FILE"
+echo "     $SKILLS_DIR/obsidian-graph-query/references/vault-config.md"
 echo ""
-echo "  2. Fill in:"
-echo "     - CLI path (Obsidian CLI executable)"
-echo "     - Vault name"
-echo "     - Excluded folders (JSON array)"
-echo "     - Relationship fields (JSON array)"
+echo "  2. Fill in: CLI path, Vault name, Excluded folders, Relationship fields"
 echo ""
-echo "  3. Restart Claude Code to load the skill."
+echo "  3. Restart Claude Code to load the skills."
 echo ""
-echo "  4. Try it: ask Claude \"show me the top hub notes in my vault\""
+echo "  4. Try it:"
+echo "     - \"show me the top hub notes in my vault\""
+echo "     - \"generate a vault knowledge graph report\""

@@ -3,10 +3,11 @@ name: obsidian-graph-query
 description: >-
   Run graph queries on Obsidian vault link structure: neighbors (N hops),
   shortest path, connected clusters, hub notes, bridge/articulation points,
-  enriched orphans, relationship summaries. Supports configurable frontmatter
-  relationship fields. Use for: knowledge graph, note relationships, graph query,
-  link analysis, note connections, hub notes, cluster analysis,
-  bridge notes, relationship summary.
+  enriched orphans, relationship summaries, vault-wide statistics.
+  Supports configurable frontmatter relationship fields. Use for:
+  knowledge graph, note relationships, graph query, link analysis,
+  note connections, hub notes, cluster analysis, bridge notes,
+  relationship summary, vault stats.
 ---
 
 # Obsidian Graph Query
@@ -40,6 +41,7 @@ description: >-
 | 5 | **hubs** | Top N 連結度 | `TOP_N`=20, `FOLDER_FILTER`='' | query-templates.md §5 |
 | 6 | **orphans-rich** | 孤立筆記 + frontmatter | `FOLDER_FILTER`='' | query-templates.md §6 |
 | 7 | **frontmatter-relations** | 關係欄位擷取 | `NOTE_PATH` | query-templates.md §7 |
+| 8 | **vault-stats** | Vault 全域統計 | 無 | query-templates.md §8 |
 
 relationship-summary 不是單一模板，而是多步驟 Agent 工作流（見下方）。
 
@@ -160,6 +162,7 @@ relationship-summary 不是單一模板，而是多步驟 Agent 工作流（見�
 | hubs | 排序表格：筆記名、in-degree、out-degree、total |
 | orphans-rich | 表格：筆記名、修改日期、frontmatter 摘要 |
 | frontmatter-relations | 關係表格 + 連結統計 |
+| vault-stats | JSON 結構化數據（由 vault-report 工作流消費，不直接呈現） |
 
 ### 大量結果截斷
 
@@ -168,6 +171,7 @@ relationship-summary 不是單一模板，而是多步驟 Agent 工作流（見�
 - orphans-rich: 最多 100 筆
 - bridges: 最多 50 條橋接邊 + 30 個關鍵節點
 - hubs: 由 TOP_N 控制（預設 20）
+- vault-stats: componentSizes 最多 20 個、outOnlyNotes 最多 50 筆
 
 ### 筆記名稱顯示
 

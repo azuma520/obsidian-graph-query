@@ -10,7 +10,7 @@
 [![Claude Code](https://img.shields.io/badge/Claude_Code-Skill-orange?style=flat-square)](https://docs.anthropic.com/en/docs/claude-code)
 [![Obsidian](https://img.shields.io/badge/Obsidian-CLI-7c3aed?style=flat-square)](https://help.obsidian.md/cli)
 
-[Why](#why) · [Installation](#installation) · [Queries](#what-can-you-ask) · [Architecture](#technical-architecture) · [Contributing](#contributing)
+[Why](#why) · [Installation](#installation) · [Queries](#what-can-you-ask) · [Vault Report](#vault-report) · [Architecture](#technical-architecture) · [Contributing](#contributing)
 
 </div>
 
@@ -97,6 +97,7 @@ When it's done, restart Claude Code. The skill is now available in every project
 | "Which notes would break the network if removed?" | Tarjan algorithm finds bridge edges and articulation points |
 | "Find isolated notes with no links" | Full vault scan, lists zero-link notes + frontmatter info |
 | "Analyze the relationship structure of [[Topic X]]" | Multi-step analysis: graph structure + frontmatter fields + LLM reasoning |
+| "Generate a vault knowledge graph report" | Chains vault-stats, hubs, bridges, orphans into a 4-module structured report |
 
 ### What it looks like
 
@@ -118,6 +119,37 @@ When it's done, restart Claude Code. The skill is now available in every project
 >
 > **Claude:** Found 23 isolated notes in the "Permanent Notes" folder. The 5 most recently modified are...
 
+## Vault Report
+
+The **vault-report** skill (installed alongside) generates a comprehensive knowledge graph analysis. It chains multiple graph queries into a structured 4-module report:
+
+| Module | What it covers |
+|--------|---------------|
+| **Overview** | Total notes, links, orphan ratio, connectivity, folder distribution |
+| **Activity Trends** | Monthly note creation, peak activity periods |
+| **Structure** | Top hub notes, per-domain link density, cross-domain connections, orphan distribution |
+| **Value & Risk** | Most-cited notes, uncited notes, bridge nodes (single points of failure) |
+
+### What it looks like
+
+> **You:** Generate a knowledge graph report for my vault
+>
+> **Claude:** *(runs vault-stats, hubs, orphans-rich, bridges across your vault)*
+>
+> **Vault Knowledge Graph Report**
+>
+> | Metric | Value |
+> |--------|-------|
+> | Total Notes | 2,134 |
+> | Total Links | 5,678 |
+> | Avg Links/Note | 2.66 |
+> | Orphans | 312 (14.6%) |
+> | Largest Component | 83.4% of vault |
+>
+> Top Hub: **MOC Index** (75 links) — Cross-domain links: 21.7% of all links
+>
+> Bridge risk: **Neural Networks** (degree 42) — removing it would disconnect Psychology and CS clusters
+
 ## Changing Settings Later
 
 Tell Claude "update my graph query config", or edit directly:
@@ -138,7 +170,7 @@ The JS runs inside Obsidian's Electron main process (via the CLI `eval` command)
 
 ## Technical Architecture
 
-### 7 Query Templates
+### 8 Query Templates
 
 Each template is a standalone JS IIFE in `skills/obsidian-graph-query/references/query-templates.md`.
 
@@ -151,12 +183,13 @@ Each template is a standalone JS IIFE in `skills/obsidian-graph-query/references
 | **hubs** | Degree calculation | O(V+E) | Count in-degree, out-degree, total degree. Supports folder filtering |
 | **orphans-rich** | Full scan | O(V+E) | Find notes with zero in-links AND zero out-links, with frontmatter and dates. Max 100 results |
 | **frontmatter-relations** | Field extraction | O(E) | Extract frontmatter relationship fields + link stats from a note |
+| **vault-stats** | Full scan + BFS | O(V+E) | One-pass vault-wide statistics: node/edge counts, orphan ratio, connected components, per-folder stats, cross-folder links, monthly creation trends, uncited notes |
 
 ### Parameterization
 
 Templates use two placeholder types, substituted from `vault-config.md` before execution:
 
-- **`{{EXCLUDED_FOLDERS}}`** — JSON array of folders to skip, present in all 7 templates
+- **`{{EXCLUDED_FOLDERS}}`** — JSON array of folders to skip, present in all 8 templates
 - **`{{RELATIONSHIP_FIELDS}}`** — JSON array of frontmatter field names, used by frontmatter-relations only
 
 ### Safety Limits
@@ -167,6 +200,7 @@ Templates use two placeholder types, substituted from `vault-config.md` before e
 | orphans-rich max 100 results | Prevent output explosion |
 | bridges max 50 edges + 30 nodes | Prevent output explosion |
 | hubs user-specified Top N (default 20) | User-controlled |
+| vault-stats componentSizes max 20, outOnlyNotes max 50 | Prevent output explosion |
 
 These limits prevent large vault queries (2000+ notes) from flooding the AI's context window.
 

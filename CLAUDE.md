@@ -1,6 +1,6 @@
 # obsidian-graph-query
 
-Obsidian vault 圖查詢 skill for Claude Code。7 個 JS 模板（neighbors、path、cluster、bridges、hubs、orphans-rich、frontmatter-relations），透過 Obsidian CLI eval 執行。
+Obsidian vault 圖查詢 skill for Claude Code。8 個 JS 模板（neighbors、path、cluster、bridges、hubs、orphans-rich、frontmatter-relations、vault-stats），透過 Obsidian CLI eval 執行。另有獨立的 vault-report skill 組合查詢產出知識圖譜報告。
 
 ---
 
@@ -79,11 +79,14 @@ cp -r skills/obsidian-graph-query/ <skills_dir>/obsidian-graph-query/
 ## 檔案結構
 
 ```
-skills/obsidian-graph-query/
-├── SKILL.md                      ← 主 skill 檔（查詢索引 + 執行流程）
-└── references/
-    ├── vault-config.md.template  ← 設定模板
-    ├── vault-config.md           ← 用戶設定（安裝時生成）
-    ├── query-templates.md        ← 7 個 JS 模板（參數化）
-    └── relationship-types.md     ← 關係 schema
+skills/
+├── obsidian-graph-query/           ← 底層圖查詢 skill
+│   ├── SKILL.md                    ← 查詢索引 + 執行流程
+│   └── references/
+│       ├── vault-config.md.template  ← 設定模板
+│       ├── vault-config.md           ← 用戶設定（安裝時生成）
+│       ├── query-templates.md        ← 8 個 JS 模板（含 vault-stats）
+│       └── relationship-types.md     ← 關係 schema
+└── vault-report/                   ← 知識圖譜報告 skill（依賴 obsidian-graph-query）
+    └── SKILL.md                    ← 報告工作流 + 產出格式
 ```
