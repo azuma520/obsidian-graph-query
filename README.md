@@ -28,7 +28,7 @@ That's it.
 Open your terminal and run:
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/obsidian-graph-query.git
+git clone https://github.com/azuma520/obsidian-graph-query.git
 ```
 
 ### Step 2: Open Claude Code in the cloned folder
