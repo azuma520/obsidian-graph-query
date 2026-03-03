@@ -1,0 +1,71 @@
+# Vault Configuration
+
+填入你的 Obsidian vault 資訊，Agent 會讀取此檔案來設定查詢參數。
+
+> **使用方式**：複製本檔案為 `vault-config.md`，填入你的設定值。
+
+---
+
+## 環境設定
+
+| 項目 | 值 |
+|------|-----|
+| CLI 路徑 | `/path/to/obsidian-cli` |
+| Vault 名稱 | `My Vault` |
+| Vault 路徑 | `/path/to/vault` |
+| 平台 | Windows / macOS / Linux |
+
+> CLI 呼叫範例：`<CLI 路徑> vault="<Vault 名稱>" <command>`
+
+---
+
+## 排除資料夾
+
+Agent 代入模板時使用的排除列表。填入你的 vault 中不需要參與圖查詢的資料夾。
+
+```json
+[".obsidian/", ".trash/", "attachments/", "templates/"]
+```
+
+常見排除項：
+- `.obsidian/` — Obsidian 設定檔（必排）
+- `.trash/` — 垃圾桶（必排）
+- `attachments/` — 圖片/附件資料夾
+- `templates/` — 筆記模板資料夾
+- 各種插件資料夾（Excalidraw、TaskNotes 等）
+
+---
+
+## 關係欄位
+
+frontmatter-relations 模板使用的欄位列表。填入你的筆記 frontmatter 中用來標註筆記間關係的欄位名。
+
+```json
+["Up", "Source", "References"]
+```
+
+詳見 `relationship-types.md` 了解欄位的語意和用法。
+
+---
+
+## 資料夾結構
+
+簡述你的 vault 主要資料夾用途，幫助 Agent 理解上下文：
+
+| 資料夾 | 用途 |
+|--------|------|
+| notes/ | 主要筆記區 |
+| daily/ | 每日筆記 |
+| attachments/ | 附件 |
+| templates/ | 模板 |
+
+---
+
+## Frontmatter Schema（可選）
+
+列出你常用的 frontmatter 欄位，方便 Agent 在篩選或分析時參考：
+
+| 欄位 | 類型 | 說明 |
+|------|------|------|
+| tags | list | 標籤 |
+| type | text | 筆記類型 |
