@@ -13,15 +13,26 @@ A [Claude Code](https://docs.anthropic.com/en/docs/claude-code) skill that runs 
 ```bash
 git clone https://github.com/YOUR_USERNAME/obsidian-graph-query.git
 cd obsidian-graph-query
+```
+
+Then open Claude Code in this directory and say **"help me set up"** (or「幫我安裝」). Claude will:
+
+1. Detect your skills directory
+2. Ask for your vault name, CLI path, and folder structure
+3. Auto-detect which folders to exclude and which frontmatter fields you use
+4. Generate your `vault-config.md`
+5. Copy the skill to the right place
+6. Run a test query to verify everything works
+
+After setup, restart Claude Code. The skill will be available globally.
+
+### Manual install (alternative)
+
+```bash
 bash install.sh
 ```
 
-The installer will:
-1. Detect your Claude Code skills directory
-2. Copy the skill files
-3. Create `vault-config.md` from the template
-
-Then edit `vault-config.md` with your vault settings and restart Claude Code.
+Then edit `vault-config.md` with your vault settings manually.
 
 ## Configuration
 
