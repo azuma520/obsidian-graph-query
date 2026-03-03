@@ -10,7 +10,7 @@
 [![Claude Code](https://img.shields.io/badge/Claude_Code-Skill-orange?style=flat-square)](https://docs.anthropic.com/en/docs/claude-code)
 [![Obsidian](https://img.shields.io/badge/Obsidian-CLI-7c3aed?style=flat-square)](https://help.obsidian.md/cli)
 
-[Why](#why) · [Installation](#installation-3-steps) · [Queries](#what-can-you-ask) · [Architecture](#technical-architecture) · [Contributing](#contributing)
+[Why](#why) · [Installation](#installation) · [Queries](#what-can-you-ask) · [Architecture](#technical-architecture) · [Contributing](#contributing)
 
 </div>
 
@@ -41,22 +41,35 @@ This skill lets your AI agent run graph algorithms directly on your vault's link
 
 That's it.
 
-## Installation (3 steps)
+## Installation
 
-### Step 1: Clone
+### Quick Install (1 command)
+
+```bash
+npx skills add azuma520/obsidian-graph-query
+```
+
+Then open Claude Code and say **"help me set up"** — Claude will walk you through vault configuration.
+
+### Manual Install (3 steps)
+
+<details>
+<summary>Click to expand</summary>
+
+#### Step 1: Clone
 
 ```bash
 git clone https://github.com/azuma520/obsidian-graph-query.git
 ```
 
-### Step 2: Open Claude Code
+#### Step 2: Open Claude Code
 
 ```bash
 cd obsidian-graph-query
 claude
 ```
 
-### Step 3: Say "help me set up"
+#### Step 3: Say "help me set up"
 
 ```
 help me set up
@@ -64,13 +77,15 @@ help me set up
 
 Claude will walk you through everything — detect your environment, ask for vault info, scan folder structure, generate config, and run a test query.
 
+</details>
+
 > [!IMPORTANT]
 > Obsidian must be running during setup so the CLI can connect.
 
 When it's done, restart Claude Code. The skill is now available in every project.
 
 > [!TIP]
-> Prefer manual install? Run `bash install.sh` and edit `vault-config.md` yourself.
+> Prefer `bash install.sh`? That works too — just edit `vault-config.md` yourself afterward.
 
 ## What Can You Ask
 
@@ -125,7 +140,7 @@ The JS runs inside Obsidian's Electron main process (via the CLI `eval` command)
 
 ### 7 Query Templates
 
-Each template is a standalone JS IIFE in `skill/references/query-templates.md`.
+Each template is a standalone JS IIFE in `skills/obsidian-graph-query/references/query-templates.md`.
 
 | Template | Algorithm | Complexity | Description |
 |----------|-----------|------------|-------------|
@@ -159,9 +174,9 @@ These limits prevent large vault queries (2000+ notes) from flooding the AI's co
 
 To add a new query template:
 
-1. Add a new section to `skill/references/query-templates.md`
+1. Add a new section to `skills/obsidian-graph-query/references/query-templates.md`
 2. Write a JS IIFE using `{{EXCLUDED_FOLDERS}}` for filtering, returning `JSON.stringify(...)`
-3. Add the new template to the query index table in `skill/SKILL.md`
+3. Add the new template to the query index table in `skills/obsidian-graph-query/SKILL.md`
 4. Test: substitute your excluded folders and verify output
 
 > [!NOTE]
