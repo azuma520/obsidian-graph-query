@@ -37,7 +37,7 @@ This skill lets your AI agent run graph algorithms directly on your vault's link
 ## What You Need
 
 1. **[Obsidian](https://obsidian.md/)** — with the [CLI](https://help.obsidian.md/cli) enabled (Settings > General > Command-line interface)
-2. **[Claude Code](https://docs.anthropic.com/en/docs/claude-code)** — Anthropic's CLI for Claude
+2. **Any supported AI agent** — Claude Code, OpenClaw, Cursor, Cline, GitHub Copilot, Windsurf, and 25+ more
 
 That's it.
 
