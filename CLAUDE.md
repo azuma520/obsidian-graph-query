@@ -45,12 +45,12 @@ Obsidian vault 圖查詢 skill for Claude Code。7 個 JS 模板（neighbors、p
 
 ### 3. 生成 vault-config.md
 
-根據用戶回答，生成 `skill/references/vault-config.md`（覆蓋 template）。
+根據用戶回答，生成 `skills/obsidian-graph-query/references/vault-config.md`（覆蓋 template）。
 
 ### 4. 複製到 skills 目錄
 
 ```bash
-cp -r skill/ <skills_dir>/obsidian-graph-query/
+cp -r skills/obsidian-graph-query/ <skills_dir>/obsidian-graph-query/
 ```
 
 ### 5. 驗證
@@ -79,7 +79,7 @@ cp -r skill/ <skills_dir>/obsidian-graph-query/
 ## 檔案結構
 
 ```
-skill/
+skills/obsidian-graph-query/
 ├── SKILL.md                      ← 主 skill 檔（查詢索引 + 執行流程）
 └── references/
     ├── vault-config.md.template  ← 設定模板

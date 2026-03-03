@@ -6,7 +6,7 @@ set -e
 
 SKILL_NAME="obsidian-graph-query"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-SOURCE_DIR="$SCRIPT_DIR/skill"
+SOURCE_DIR="$SCRIPT_DIR/skills/obsidian-graph-query"
 
 echo "=== $SKILL_NAME Installer ==="
 echo ""
