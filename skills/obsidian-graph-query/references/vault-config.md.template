@@ -48,6 +48,24 @@ frontmatter-relations 模板使用的欄位列表。填入你的筆記 frontmatt
 
 ---
 
+### Frontmatter 欄位映射（FRONTMATTER_MAPPING）
+
+suggest-links 用來比對孤島筆記時，需要知道你的 vault 用什麼欄位名稱。
+
+```json
+{ "domain": "專業", "source": "來源", "noteType": "筆記類型" }
+```
+
+| 演算法用途 | 你的欄位名 | 說明 |
+|-----------|-----------|------|
+| domain | 專業 | 知識領域（用於同領域比對） |
+| source | 來源 | 外部來源（用於同來源比對） |
+| noteType | 筆記類型 | 筆記類型（用於同類比對） |
+
+> 如果你的 vault 用不同的欄位名，修改「你的欄位名」欄。
+
+---
+
 ## 資料夾結構（可選）
 
 列出你的 vault 中哪些資料夾包含你想分析的筆記：

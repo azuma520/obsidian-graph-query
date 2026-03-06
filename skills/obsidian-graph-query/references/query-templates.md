@@ -22,7 +22,7 @@ hop 1 的直接鄰居額外標註連結方向和來源（frontmatter 欄位 or �
   const MAX_HOPS = {{MAX_HOPS}};
   const EXCLUDED = {{EXCLUDED_FOLDERS}};
   const REL_FIELDS = {{RELATIONSHIP_FIELDS}};
-  const isExcluded = p => EXCLUDED.some(e => p.startsWith(e));
+  const isExcluded = p => !p.endsWith('.md') || EXCLUDED.some(e => p.startsWith(e));
 
   const rl = app.metadataCache.resolvedLinks;
   const adj = {};
@@ -156,7 +156,7 @@ hop 1 的直接鄰居額外標註連結方向和來源（frontmatter 欄位 or �
   const TO = '{{TO_PATH}}';
   const EXCLUDED = {{EXCLUDED_FOLDERS}};
   const REL_FIELDS = {{RELATIONSHIP_FIELDS}};
-  const isExcluded = p => EXCLUDED.some(e => p.startsWith(e));
+  const isExcluded = p => !p.endsWith('.md') || EXCLUDED.some(e => p.startsWith(e));
 
   const rl = app.metadataCache.resolvedLinks;
   const adj = {};
@@ -271,7 +271,7 @@ hop 1 的直接鄰居額外標註連結方向和來源（frontmatter 欄位 or �
   const NOTE = '{{NOTE_PATH}}';
   const MAX_DISPLAY = 500;
   const EXCLUDED = {{EXCLUDED_FOLDERS}};
-  const isExcluded = p => EXCLUDED.some(e => p.startsWith(e));
+  const isExcluded = p => !p.endsWith('.md') || EXCLUDED.some(e => p.startsWith(e));
 
   const rl = app.metadataCache.resolvedLinks;
   const adj = {};
@@ -343,7 +343,7 @@ hop 1 的直接鄰居額外標註連結方向和來源（frontmatter 欄位 or �
 ```javascript
 (() => {
   const EXCLUDED = {{EXCLUDED_FOLDERS}};
-  const isExcluded = p => EXCLUDED.some(e => p.startsWith(e));
+  const isExcluded = p => !p.endsWith('.md') || EXCLUDED.some(e => p.startsWith(e));
 
   const rl = app.metadataCache.resolvedLinks;
 
@@ -463,7 +463,7 @@ hop 1 的直接鄰居額外標註連結方向和來源（frontmatter 欄位 or �
   const TOP_N = {{TOP_N}};
   const FOLDER_FILTER = '{{FOLDER_FILTER}}';
   const EXCLUDED = {{EXCLUDED_FOLDERS}};
-  const isExcluded = p => EXCLUDED.some(e => p.startsWith(e));
+  const isExcluded = p => !p.endsWith('.md') || EXCLUDED.some(e => p.startsWith(e));
 
   const rl = app.metadataCache.resolvedLinks;
 
@@ -516,7 +516,7 @@ hop 1 的直接鄰居額外標註連結方向和來源（frontmatter 欄位 or �
 (() => {
   const FOLDER_FILTER = '{{FOLDER_FILTER}}';
   const EXCLUDED = {{EXCLUDED_FOLDERS}};
-  const isExcluded = p => EXCLUDED.some(e => p.startsWith(e));
+  const isExcluded = p => !p.endsWith('.md') || EXCLUDED.some(e => p.startsWith(e));
 
   const rl = app.metadataCache.resolvedLinks;
 
@@ -632,7 +632,7 @@ hop 1 的直接鄰居額外標註連結方向和來源（frontmatter 欄位 or �
 ```javascript
 (() => {
   const EXCLUDED = {{EXCLUDED_FOLDERS}};
-  const isExcluded = p => EXCLUDED.some(e => p.startsWith(e));
+  const isExcluded = p => !p.endsWith('.md') || EXCLUDED.some(e => p.startsWith(e));
 
   const rl = app.metadataCache.resolvedLinks;
 
@@ -798,3 +798,226 @@ hop 1 的直接鄰居額外標註連結方向和來源（frontmatter 欄位 or �
 - `componentSizes`：前 20 個分量大小（降序），除了最大的以外都是「知識孤島」
 - `crossFolderRatio`：跨資料夾連結佔總連結的比例，反映跨領域整合程度
 - `outOnlyNotes`：有連出但沒人引用的筆記，可能是「寫了但沒被利用」的知識
+
+---
+
+## 9. suggest-links — 結構性連結建議（孤島救援 + 應連未連）
+
+**參數**：`{{MAX_SUGGESTIONS}}`（每類最多建議數，預設 30）、`{{FRONTMATTER_MAPPING}}`
+
+兩階段演算法：先用 frontmatter 比對為孤島找候選連結，再用共同鄰居 Jaccard 找應該連但沒連的筆記對。
+
+```javascript
+(() => {
+  const MAX_SUGGESTIONS = {{MAX_SUGGESTIONS}};
+  const EXCLUDED = {{EXCLUDED_FOLDERS}};
+  const REL_FIELDS = {{RELATIONSHIP_FIELDS}};
+  const FM = {{FRONTMATTER_MAPPING}};
+  const isExcluded = p => !p.endsWith('.md') || EXCLUDED.some(e => p.startsWith(e));
+
+  const rl = app.metadataCache.resolvedLinks;
+
+  // --- Build directed degree maps + undirected adjacency ---
+  const outDeg = {};
+  const inDeg = {};
+  const adjSet = {};
+
+  for (const [src, targets] of Object.entries(rl)) {
+    if (isExcluded(src)) continue;
+    if (!adjSet[src]) adjSet[src] = new Set();
+    const tgts = Object.keys(targets).filter(t => !isExcluded(t));
+    outDeg[src] = (outDeg[src] || 0) + tgts.length;
+    for (const tgt of tgts) {
+      inDeg[tgt] = (inDeg[tgt] || 0) + 1;
+      if (!adjSet[tgt]) adjSet[tgt] = new Set();
+      adjSet[src].add(tgt);
+      adjSet[tgt].add(src);
+    }
+  }
+
+  // --- Identify orphans (0 in + 0 out) ---
+  const allFiles = app.vault.getMarkdownFiles().filter(f => !isExcluded(f.path));
+  const connectedNodes = new Set();
+  for (const [n, d] of Object.entries(outDeg)) { if (d > 0) connectedNodes.add(n); }
+  for (const [n, d] of Object.entries(inDeg)) { if (d > 0) connectedNodes.add(n); }
+
+  const orphanPaths = [];
+  const linkedPaths = [];
+  for (const f of allFiles) {
+    if (!connectedNodes.has(f.path)) orphanPaths.push(f.path);
+    else linkedPaths.push(f.path);
+  }
+
+  // --- Helper: extract frontmatter fields for comparison ---
+  function getFmProfile(path) {
+    const file = app.vault.getAbstractFileByPath(path);
+    if (!file) return null;
+    const cache = app.metadataCache.getFileCache(file);
+    if (!cache || !cache.frontmatter) return null;
+    const fm = cache.frontmatter;
+    const tags = Array.isArray(fm.tags) ? fm.tags : (fm.tags ? [fm.tags] : []);
+    const getDomain = fm[FM.domain];
+    const getSource = fm[FM.source];
+    const getNoteType = fm[FM.noteType];
+    return {
+      tags: new Set(tags.map(t => String(t).toLowerCase())),
+      domain: getDomain ? String(Array.isArray(getDomain) ? getDomain[0] : getDomain).toLowerCase() : '',
+      source: getSource ? String(Array.isArray(getSource) ? getSource[0] : getSource) : '',
+      noteType: getNoteType ? String(Array.isArray(getNoteType) ? getNoteType[0] : getNoteType).toLowerCase() : ''
+    };
+  }
+
+  // --- Phase A: Orphan Rescue (frontmatter matching) ---
+  const ORPHAN_CAP = 50;
+  const LINKED_CAP = 500;
+  const orphanSuggestions = [];
+
+  const orphanSlice = orphanPaths.slice(0, ORPHAN_CAP);
+  const linkedSlice = linkedPaths.slice(0, LINKED_CAP);
+
+  // Pre-compute linked profiles
+  const linkedProfiles = [];
+  for (const lp of linkedSlice) {
+    const prof = getFmProfile(lp);
+    if (prof) linkedProfiles.push({ path: lp, prof: prof });
+  }
+
+  for (const op of orphanSlice) {
+    const oProf = getFmProfile(op);
+    if (!oProf) continue;
+
+    const candidates = [];
+    for (const { path: lp, prof: lProf } of linkedProfiles) {
+      let score = 0;
+      const reasons = [];
+
+      // Tags Jaccard * 3
+      if (oProf.tags.size > 0 && lProf.tags.size > 0) {
+        let inter = 0;
+        for (const t of oProf.tags) { if (lProf.tags.has(t)) inter++; }
+        if (inter > 0) {
+          const union = new Set([...oProf.tags, ...lProf.tags]).size;
+          const jaccard = inter / union;
+          score += jaccard * 3;
+          const shared = [];
+          for (const t of oProf.tags) { if (lProf.tags.has(t)) shared.push(t); }
+          reasons.push('tags: [' + shared.join(', ') + ']');
+        }
+      }
+
+      // Domain match * 2
+      if (oProf.domain && lProf.domain && oProf.domain === lProf.domain) {
+        score += 2;
+        reasons.push('domain: ' + oProf.domain);
+      }
+
+      // Source match * 2
+      if (oProf.source && lProf.source && oProf.source === lProf.source) {
+        score += 2;
+        reasons.push('source: ' + oProf.source);
+      }
+
+      // Note type match * 1
+      if (oProf.noteType && lProf.noteType && oProf.noteType === lProf.noteType) {
+        score += 1;
+        reasons.push('note-type: ' + oProf.noteType);
+      }
+
+      if (score > 0) {
+        candidates.push({ note: lp, score: Math.round(score * 100) / 100, reasons: reasons });
+      }
+    }
+
+    candidates.sort((a, b) => b.score - a.score);
+    if (candidates.length > 0) {
+      orphanSuggestions.push({
+        orphan: op,
+        suggestions: candidates.slice(0, 3)
+      });
+    }
+  }
+
+  orphanSuggestions.sort((a, b) => b.suggestions[0].score - a.suggestions[0].score);
+
+  // --- Phase B: Missing Link Detection (common neighbor Jaccard) ---
+  const NODE_CAP = 500;
+  const missingLinkSuggestions = [];
+
+  // Get nodes with degree >= 2
+  const eligibleNodes = [];
+  for (const n of Object.keys(adjSet)) {
+    if ((adjSet[n] || new Set()).size >= 2) eligibleNodes.push(n);
+  }
+  const nodeSlice = eligibleNodes.slice(0, NODE_CAP);
+
+  // For each node, check 2-hop neighbors not directly connected
+  const seen = new Set();
+  for (const node of nodeSlice) {
+    const neighbors = adjSet[node];
+    if (!neighbors) continue;
+    const nbArr = [...neighbors];
+
+    for (const nb of nbArr) {
+      // 2-hop: neighbors of nb that are not directly connected to node
+      const nb2 = adjSet[nb];
+      if (!nb2) continue;
+
+      for (const hop2 of nb2) {
+        if (hop2 === node) continue;
+        if (neighbors.has(hop2)) continue; // already directly connected
+
+        const pairKey = node < hop2 ? node + '|' + hop2 : hop2 + '|' + node;
+        if (seen.has(pairKey)) continue;
+        seen.add(pairKey);
+
+        // Compute common neighbors
+        const nodeNb = adjSet[node] || new Set();
+        const hop2Nb = adjSet[hop2] || new Set();
+        let common = 0;
+        for (const x of nodeNb) { if (hop2Nb.has(x)) common++; }
+
+        if (common >= 2) {
+          const union = new Set([...nodeNb, ...hop2Nb]).size;
+          const jaccard = Math.round(common / union * 10000) / 10000;
+          missingLinkSuggestions.push({
+            noteA: node, noteB: hop2,
+            commonNeighbors: common, jaccard: jaccard
+          });
+        }
+      }
+    }
+  }
+
+  missingLinkSuggestions.sort((a, b) => b.jaccard - a.jaccard || b.commonNeighbors - a.commonNeighbors);
+
+  return JSON.stringify({
+    orphanSuggestions: orphanSuggestions.slice(0, MAX_SUGGESTIONS),
+    missingLinkSuggestions: missingLinkSuggestions.slice(0, MAX_SUGGESTIONS),
+    totalOrphans: orphanPaths.length,
+    scannedOrphans: Math.min(orphanPaths.length, ORPHAN_CAP),
+    totalNodes: allFiles.length,
+    scannedNodes: Math.min(eligibleNodes.length, NODE_CAP)
+  });
+})()
+```
+
+**輸出範例**：
+```json
+{
+  "orphanSuggestions": [
+    { "orphan": "notes/孤島筆記.md", "suggestions": [
+      { "note": "notes/相關筆記.md", "score": 4.5, "reasons": ["tags: [AI]", "domain: tech"] }
+    ]}
+  ],
+  "missingLinkSuggestions": [
+    { "noteA": "notes/X.md", "noteB": "notes/Y.md", "commonNeighbors": 4, "jaccard": 0.2857 }
+  ],
+  "totalOrphans": 120, "scannedOrphans": 50,
+  "totalNodes": 1253, "scannedNodes": 500
+}
+```
+
+**輸出說明**：
+- `orphanSuggestions`：孤島筆記的連結候選，基於 frontmatter 欄位相似度（tags、domain、source、noteType，欄位名由 `FRONTMATTER_MAPPING` 決定）
+- `missingLinkSuggestions`：有大量共同鄰居但未直接連結的筆記對，Jaccard 越高越可能應該連結
+- 安全閥：孤島掃描 50 篇、有連結節點掃描 500 篇、每類輸出最多 `MAX_SUGGESTIONS` 筆、每篇孤島最多 3 個候選
