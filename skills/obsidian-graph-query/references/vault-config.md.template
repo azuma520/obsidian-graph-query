@@ -48,24 +48,20 @@ frontmatter-relations 模板使用的欄位列表。填入你的筆記 frontmatt
 
 ---
 
-## 資料夾結構
+## 資料夾結構（可選）
 
-簡述你的 vault 主要資料夾用途，幫助 Agent 理解上下文：
+列出你的 vault 中哪些資料夾包含你想分析的筆記：
 
 | 資料夾 | 用途 |
 |--------|------|
-| notes/ | 主要筆記區 |
-| daily/ | 每日筆記 |
-| attachments/ | 附件 |
-| templates/ | 模板 |
+| | |
 
 ---
 
 ## Frontmatter Schema（可選）
 
-列出你常用的 frontmatter 欄位，方便 Agent 在篩選或分析時參考：
+列出你在筆記間關係標註中使用的 frontmatter 欄位（若有 Dataview inline fields 也可列出）：
 
 | 欄位 | 類型 | 說明 |
 |------|------|------|
-| tags | list | 標籤 |
-| type | text | 筆記類型 |
+| | | |
