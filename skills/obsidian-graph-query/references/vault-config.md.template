@@ -10,7 +10,7 @@
 
 | 項目 | 值 |
 |------|-----|
-| CLI 路徑 | `/path/to/obsidian-cli` |
+| CLI 路徑 | `obsidian` |
 | Vault 名稱 | `My Vault` |
 | Vault 路徑 | `/path/to/vault` |
 | 平台 | Windows / macOS / Linux |
